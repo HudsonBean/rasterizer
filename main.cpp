@@ -8,7 +8,20 @@ const int HEIGHT = 600;
 // Create framebuffer
 std::vector<uint32_t> framebuffer(WIDTH *HEIGHT);
 
+struct pixel {
+  int x;
+  int y;
+};
+
 void draw_pixel(int x, int y, uint32_t color) {
+  if (x >= 0 && y >= 0 && x < WIDTH && y < HEIGHT) {
+    framebuffer[y * WIDTH + x] = color; // Map color to grid spot
+  }
+}
+void draw_pixel(pixel a, uint32_t color) {
+  int x = a.x;
+  int y = a.y;
+
   if (x >= 0 && y >= 0 && x < WIDTH && y < HEIGHT) {
     framebuffer[y * WIDTH + x] = color; // Map color to grid spot
   }
@@ -80,6 +93,18 @@ void draw_line(int x0, int y0, int x1, int y1, uint32_t color) {
     draw_line_vertical(x0, y0, x1, y1, color);
   }
 }
+void draw_line(pixel a, pixel b, uint32_t color) {
+  int x0 = a.x;
+  int y0 = a.y;
+  int x1 = b.x;
+  int y1 = b.y;
+
+  if (std::abs(x1 - x0) > std::abs(y1 - y0)) {
+    draw_line_horizontal(x0, y0, x1, y1, color);
+  } else {
+    draw_line_vertical(x0, y0, x1, y1, color);
+  }
+}
 
 int main(int argc, char *argv[]) {
   if (!SDL_Init(SDL_INIT_VIDEO)) {
@@ -127,7 +152,8 @@ int main(int argc, char *argv[]) {
     }
 
     // Draw pixel to center
-    draw_pixel(WIDTH / 2, HEIGHT / 2, 0xFFFFFFFF);
+    pixel center_pixel{WIDTH / 2, HEIGHT / 2};
+    draw_pixel(center_pixel, 0xFFFFFFFF);
 
     // Draw line
     draw_line(100, 100, 500, 500, 0xFFFFFFFF);

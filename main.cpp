@@ -44,7 +44,7 @@ void draw_line_horizontal(int x0, int y0, int x1, int y1, uint32_t color) {
     int y = y0;
     int drift = 2 * dy - dx;
 
-    for (int i; i < (dx + 1); i++) {
+    for (int i = 0; i < (dx + 1); i++) {
       draw_pixel(x0 + i, y, color);
 
       // Make shift decision
@@ -73,7 +73,7 @@ void draw_line_vertical(int x0, int y0, int x1, int y1, uint32_t color) {
     int x = x0;
     int drift = 2 * dx - dy;
 
-    for (int i; i < (dy + 1); i++) {
+    for (int i = 0; i < (dy + 1); i++) {
       draw_pixel(x, y0 + i, color);
 
       // Make shift decision
@@ -104,6 +104,26 @@ void draw_line(pixel a, pixel b, uint32_t color) {
   } else {
     draw_line_vertical(x0, y0, x1, y1, color);
   }
+}
+
+// Draw triangle faces
+void draw_triangle(int x0, int y0, int x1, int y1, int x2, int y2,
+                   uint32_t color) {
+  draw_line(x0, y0, x1, y1, color);
+  draw_line(x1, y1, x2, y2, color);
+  draw_line(x2, y2, x0, y0, color);
+}
+void draw_triangle(pixel a, pixel b, pixel c, uint32_t color) {
+  int x0 = a.x;
+  int y0 = a.y;
+  int x1 = b.x;
+  int y1 = b.y;
+  int x2 = c.x;
+  int y2 = c.y;
+
+  draw_line(a, b, color);
+  draw_line(b, c, color);
+  draw_line(c, a, color);
 }
 
 int main(int argc, char *argv[]) {
@@ -157,6 +177,9 @@ int main(int argc, char *argv[]) {
 
     // Draw line
     draw_line(100, 100, 500, 500, 0xFFFFFFFF);
+
+    // Draw triangle
+    draw_triangle(240, 150, 500, 240, 300, 400, 0xFFFFFFFF);
 
     // Update the texture
     SDL_UpdateTexture(texture, nullptr, framebuffer.data(),

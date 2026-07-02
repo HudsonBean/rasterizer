@@ -112,9 +112,15 @@ void fill_triangle(Vec2 a, Vec2 b, Vec2 c, uint32_t color) {
     for (int x = min_x; x <= max_x; x++) {
       Vec2 p{static_cast<float>(x), static_cast<float>(y)};
 
+      const float triangle_area = orient2D(a, b, c);
       const float w0 = orient2D(a, b, p);
       const float w1 = orient2D(b, c, p);
       const float w2 = orient2D(c, a, p);
+
+      // Barycentric weights
+      const float alpha = orient2D(b, c, p) / triangle_area;
+      const float beta = orient2D(a, c, p) / triangle_area;
+      const float gamma = orient2D(a, b, p) / triangle_area;
 
       const bool has_neg = (w0 < 0) || (w1 < 0) || (w2 < 0);
       const bool has_pos = (w0 > 0) || (w1 > 0) || (w2 > 0);

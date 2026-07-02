@@ -1,5 +1,8 @@
+#include "geometry.h"
 #include "vec.h"
 #include <SDL3/SDL.h>
+#include <algorithm>
+#include <cmath>
 #include <cstdint>
 #include <vector>
 
@@ -11,16 +14,12 @@ std::vector<uint32_t> framebuffer(WIDTH *HEIGHT);
 
 void draw_pixel(int x, int y, uint32_t color) {
   if (x >= 0 && y >= 0 && x < WIDTH && y < HEIGHT) {
-    framebuffer[y * WIDTH + x] = color; // Map color to grid spot
+    framebuffer[y * WIDTH + x] = color;
   }
 }
-void draw_pixel(Vec2 a, uint32_t color) {
-  int x = a.x;
-  int y = a.y;
 
-  if (x >= 0 && y >= 0 && x < WIDTH && y < HEIGHT) {
-    framebuffer[y * WIDTH + x] = color; // Map color to grid spot
-  }
+void draw_pixel(Vec2 a, uint32_t color) {
+  draw_pixel(static_cast<int>(a.x), static_cast<int>(a.y), color);
 }
 
 // Bresenham's line drawing algorithm
@@ -43,7 +42,6 @@ void draw_line_horizontal(int x0, int y0, int x1, int y1, uint32_t color) {
     for (int i = 0; i < (dx + 1); i++) {
       draw_pixel(x0 + i, y, color);
 
-      // Make shift decision
       if (drift >= 0) {
         y += dir;
         drift = drift - 2 * dx;
@@ -53,6 +51,7 @@ void draw_line_horizontal(int x0, int y0, int x1, int y1, uint32_t color) {
     }
   }
 }
+
 void draw_line_vertical(int x0, int y0, int x1, int y1, uint32_t color) {
   if (y0 > y1) {
     std::swap(x0, x1);
@@ -72,7 +71,6 @@ void draw_line_vertical(int x0, int y0, int x1, int y1, uint32_t color) {
     for (int i = 0; i < (dy + 1); i++) {
       draw_pixel(x, y0 + i, color);
 
-      // Make shift decision
       if (drift >= 0) {
         x += dir;
         drift = drift - 2 * dy;
@@ -82,44 +80,49 @@ void draw_line_vertical(int x0, int y0, int x1, int y1, uint32_t color) {
     }
   }
 }
+
 void draw_line(int x0, int y0, int x1, int y1, uint32_t color) {
   if (std::abs(x1 - x0) > std::abs(y1 - y0)) {
     draw_line_horizontal(x0, y0, x1, y1, color);
   } else {
     draw_line_vertical(x0, y0, x1, y1, color);
   }
+  Vec2 a{static_cast<float>(x0), static_cast<float>(y0)};
+  Vec2 b{static_cast<float>(x1), static_cast<float>(y1)};
 }
+
 void draw_line(Vec2 a, Vec2 b, uint32_t color) {
-  int x0 = a.x;
-  int y0 = a.y;
-  int x1 = b.x;
-  int y1 = b.y;
-
-  if (std::abs(x1 - x0) > std::abs(y1 - y0)) {
-    draw_line_horizontal(x0, y0, x1, y1, color);
-  } else {
-    draw_line_vertical(x0, y0, x1, y1, color);
-  }
+  draw_line(static_cast<int>(a.x), static_cast<int>(a.y), static_cast<int>(b.x),
+            static_cast<int>(b.y), color);
 }
 
-// Draw triangle faces
-void draw_triangle(int x0, int y0, int x1, int y1, int x2, int y2,
-                   uint32_t color) {
-  draw_line(x0, y0, x1, y1, color);
-  draw_line(x1, y1, x2, y2, color);
-  draw_line(x2, y2, x0, y0, color);
-}
 void draw_triangle(Vec2 a, Vec2 b, Vec2 c, uint32_t color) {
-  int x0 = a.x;
-  int y0 = a.y;
-  int x1 = b.x;
-  int y1 = b.y;
-  int x2 = c.x;
-  int y2 = c.y;
-
   draw_line(a, b, color);
   draw_line(b, c, color);
   draw_line(c, a, color);
+}
+
+void fill_triangle(Vec2 a, Vec2 b, Vec2 c, uint32_t color) {
+  const int min_x = static_cast<int>(std::floor(std::min({a.x, b.x, c.x})));
+  const int max_x = static_cast<int>(std::ceil(std::max({a.x, b.x, c.x})));
+  const int min_y = static_cast<int>(std::floor(std::min({a.y, b.y, c.y})));
+  const int max_y = static_cast<int>(std::ceil(std::max({a.y, b.y, c.y})));
+
+  for (int y = min_y; y <= max_y; y++) {
+    for (int x = min_x; x <= max_x; x++) {
+      Vec2 p{static_cast<float>(x), static_cast<float>(y)};
+
+      const float w0 = orient2D(a, b, p);
+      const float w1 = orient2D(b, c, p);
+      const float w2 = orient2D(c, a, p);
+
+      const bool has_neg = (w0 < 0) || (w1 < 0) || (w2 < 0);
+      const bool has_pos = (w0 > 0) || (w1 > 0) || (w2 > 0);
+      if (!(has_neg && has_pos)) {
+        draw_pixel(x, y, color);
+      }
+    }
+  }
 }
 
 int main(int argc, char *argv[]) {
@@ -128,7 +131,6 @@ int main(int argc, char *argv[]) {
     return 1;
   }
 
-  // Create window
   SDL_Window *window = SDL_CreateWindow("Rasterizer", WIDTH, HEIGHT, 0);
   if (!window) {
     SDL_Log("SDL_CreateWindow failed: %s", SDL_GetError());
@@ -136,7 +138,6 @@ int main(int argc, char *argv[]) {
     return 1;
   }
 
-  // Create renderer
   SDL_Renderer *renderer = SDL_CreateRenderer(window, NULL);
   if (!renderer) {
     SDL_Log("SDL_CreateRenderer failed: %s", SDL_GetError());
@@ -144,7 +145,6 @@ int main(int argc, char *argv[]) {
     return 1;
   }
 
-  // Create texture
   SDL_Texture *texture =
       SDL_CreateTexture(renderer, SDL_PIXELFORMAT_ARGB8888,
                         SDL_TEXTUREACCESS_STREAMING, WIDTH, HEIGHT);
@@ -154,7 +154,6 @@ int main(int argc, char *argv[]) {
     return 1;
   }
 
-  // Create event loop
   bool running = true;
   SDL_Event event;
   while (running) {
@@ -162,29 +161,20 @@ int main(int argc, char *argv[]) {
       if (event.type == SDL_EVENT_QUIT)
         running = false;
     }
-    // Clear screen to black
+
     for (auto &pixel : framebuffer) {
       pixel = 0xFF000000;
     }
 
-    // Draw pixel to center
-    Vec2 center_pixel{WIDTH / 2, HEIGHT / 2};
-    draw_pixel(center_pixel, 0xFFFFFFFF);
+    Vec2 a{240, 150};
+    Vec2 b{500, 240};
+    Vec2 c{300, 400};
+    draw_triangle(a, b, c, 0xFFFFFFFF);
+    fill_triangle(a, b, c, 0xFFFFFFFF);
 
-    // Draw line
-    draw_line(100, 100, 500, 500, 0xFFFFFFFF);
-
-    // Draw triangle
-    draw_triangle(240, 150, 500, 240, 300, 400, 0xFFFFFFFF);
-
-    // Update the texture
     SDL_UpdateTexture(texture, nullptr, framebuffer.data(),
                       WIDTH * sizeof(uint32_t));
-
-    // Draw texture to screen
     SDL_RenderTexture(renderer, texture, nullptr, nullptr);
-
-    // Display
     SDL_RenderPresent(renderer);
   }
 

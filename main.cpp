@@ -1,3 +1,4 @@
+#include "vec.h"
 #include <SDL3/SDL.h>
 #include <cstdint>
 #include <vector>
@@ -8,17 +9,12 @@ const int HEIGHT = 600;
 // Create framebuffer
 std::vector<uint32_t> framebuffer(WIDTH *HEIGHT);
 
-struct pixel {
-  int x;
-  int y;
-};
-
 void draw_pixel(int x, int y, uint32_t color) {
   if (x >= 0 && y >= 0 && x < WIDTH && y < HEIGHT) {
     framebuffer[y * WIDTH + x] = color; // Map color to grid spot
   }
 }
-void draw_pixel(pixel a, uint32_t color) {
+void draw_pixel(Vec2 a, uint32_t color) {
   int x = a.x;
   int y = a.y;
 
@@ -93,7 +89,7 @@ void draw_line(int x0, int y0, int x1, int y1, uint32_t color) {
     draw_line_vertical(x0, y0, x1, y1, color);
   }
 }
-void draw_line(pixel a, pixel b, uint32_t color) {
+void draw_line(Vec2 a, Vec2 b, uint32_t color) {
   int x0 = a.x;
   int y0 = a.y;
   int x1 = b.x;
@@ -113,7 +109,7 @@ void draw_triangle(int x0, int y0, int x1, int y1, int x2, int y2,
   draw_line(x1, y1, x2, y2, color);
   draw_line(x2, y2, x0, y0, color);
 }
-void draw_triangle(pixel a, pixel b, pixel c, uint32_t color) {
+void draw_triangle(Vec2 a, Vec2 b, Vec2 c, uint32_t color) {
   int x0 = a.x;
   int y0 = a.y;
   int x1 = b.x;
@@ -172,7 +168,7 @@ int main(int argc, char *argv[]) {
     }
 
     // Draw pixel to center
-    pixel center_pixel{WIDTH / 2, HEIGHT / 2};
+    Vec2 center_pixel{WIDTH / 2, HEIGHT / 2};
     draw_pixel(center_pixel, 0xFFFFFFFF);
 
     // Draw line

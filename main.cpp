@@ -221,6 +221,7 @@ int main(int argc, char *argv[]) {
     // Camera inverse transform
     Mat4 view = Mat4::translate({-camera_pos.x, -camera_pos.y, -camera_pos.z});
     Mat4 proj = perspective(fov, aspect, 0.5f, 100.0f);
+    Mat4 view_proj = proj * view;
 
     // ––––––––––––––––––––––––––––––––––––––––––––––––––
 

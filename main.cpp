@@ -1,9 +1,11 @@
 #include "geometry.h"
+#include "mat.h"
 #include "vec.h"
 #include <SDL3/SDL.h>
 #include <algorithm>
 #include <cmath>
 #include <cstdint>
+#include <numbers>
 #include <vector>
 
 const int WIDTH = 800;
@@ -131,6 +133,10 @@ void fill_triangle(Vec2 a, Vec2 b, Vec2 c, uint32_t color) {
   }
 }
 
+float to_rad(int deg) { return deg * (std::numbers::pi / 180); }
+
+Mat4 perspective(float fov_y, float aspect, float near, float far) {}
+
 int main(int argc, char *argv[]) {
   if (!SDL_Init(SDL_INIT_VIDEO)) {
     SDL_Log("SDL_Init failed: %s", SDL_GetError());
@@ -172,10 +178,40 @@ int main(int argc, char *argv[]) {
       pixel = 0xFF000000;
     }
 
-    Vec2 a{240, 150};
-    Vec2 b{500, 240};
-    Vec2 c{300, 400};
-    fill_triangle(a, b, c, 0xFFFFFFFF);
+    // ––––––––––––––––––––––––––––––––––––––––––––––––––
+
+    // Back triangle (far)
+    Vec3 a0{200, 120, 0.0f};
+    Vec3 b0{520, 220, 0.0f};
+    Vec3 c0{280, 420, 0.0f};
+    fill_triangle(Vec2{a0.x, a0.y}, Vec2{b0.x, b0.y}, Vec2{c0.x, c0.y},
+                  0xFFFF0000);
+
+    // Middle triangle
+    Vec3 a1{260, 160, 0.5f};
+    Vec3 b1{480, 260, 0.5f};
+    Vec3 c1{340, 380, 0.5f};
+    fill_triangle(Vec2{a1.x, a1.y}, Vec2{b1.x, b1.y}, Vec2{c1.x, c1.y},
+                  0xFF00FF00);
+
+    // Front triangle (near)
+    Vec3 a2{320, 200, 1.0f};
+    Vec3 b2{440, 280, 1.0f};
+    Vec3 c2{380, 340, 1.0f};
+    fill_triangle(Vec2{a2.x, a2.y}, Vec2{b2.x, b2.y}, Vec2{c2.x, c2.y},
+                  0xFF0000FF);
+
+    // ––––––––––––––Perspective Projection––––––––––––––
+    // Maybe move these somewhere else later on
+    Vec3 camera_pos{0, 0, 0};
+    float fov = to_rad(60);
+    float aspect = 1920.0f / 1080.0f;
+
+    // Camera inverse transform
+    Mat4 view = Mat4::translate({-camera_pos.x, -camera_pos.y, -camera_pos.z});
+    Mat4 proj = perspective(fov, aspect, 0.5f, 100.0f);
+
+    // ––––––––––––––––––––––––––––––––––––––––––––––––––
 
     SDL_UpdateTexture(texture, nullptr, framebuffer.data(),
                       WIDTH * sizeof(uint32_t));

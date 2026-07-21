@@ -3,8 +3,30 @@
 
 #include "vec.h"
 
+struct Mat {};
+
 struct Mat4 {
   float mat[4][4];
+
+  static Mat4 identity() {
+    Mat4 result{
+        {
+            {1, 0, 0, 0},
+            {0, 1, 0, 0},
+            {0, 0, 1, 0},
+            {0, 0, 0, 1},
+        },
+    };
+    return result;
+  }
+
+  static Mat4 translate(Vec3 transform) {
+    Mat4 m = identity();
+    m.mat[0][3] = transform.x;
+    m.mat[1][3] = transform.y;
+    m.mat[2][3] = transform.z;
+    return m;
+  }
 
   Vec4 operator*(const Vec4 &v) const {
     return Vec4(

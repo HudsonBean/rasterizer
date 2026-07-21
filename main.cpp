@@ -135,7 +135,18 @@ void fill_triangle(Vec2 a, Vec2 b, Vec2 c, uint32_t color) {
 
 float to_rad(int deg) { return deg * (std::numbers::pi / 180); }
 
-Mat4 perspective(float fov_y, float aspect, float near, float far) {}
+Mat4 perspective(float fov_y, float aspect, float near, float far) {
+  Mat4 m = Mat4::identity();
+  const float f = 1 / (tan(fov_y / 2));
+
+  m.mat[0][0] = f / aspect;
+  m.mat[1][1] = f;
+  m.mat[2][2] = -(far + near) / (far - near);        // A
+  m.mat[2][3] = -(2.0f * far * near) / (far - near); // B
+  m.mat[3][2] = -1.0f;                               // Stages w divide
+
+  return m;
+}
 
 int main(int argc, char *argv[]) {
   if (!SDL_Init(SDL_INIT_VIDEO)) {

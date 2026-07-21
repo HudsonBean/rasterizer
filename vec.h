@@ -19,6 +19,8 @@ struct Vec2 {
   Vec2 operator*(float scalar) const { return Vec2(x * scalar, y * scalar); }
 
   float dot(const Vec2 &other) const { return x * other.x + y * other.y; }
+
+  float cross2D(const Vec2 &other) const { return x * other.y - y * other.x; }
 };
 
 struct Vec3 {

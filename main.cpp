@@ -118,9 +118,9 @@ void fill_triangle(Vec2 a, Vec2 b, Vec2 c, uint32_t color) {
       const float w2 = orient2D(c, a, p);
 
       // Barycentric weights
-      const float alpha = orient2D(b, c, p) / triangle_area;
-      const float beta = orient2D(a, c, p) / triangle_area;
-      const float gamma = orient2D(a, b, p) / triangle_area;
+      const float alpha = w1 / triangle_area;
+      const float beta = w2 / triangle_area;
+      const float gamma = w0 / triangle_area;
 
       const bool has_neg = (w0 < 0) || (w1 < 0) || (w2 < 0);
       const bool has_pos = (w0 > 0) || (w1 > 0) || (w2 > 0);
@@ -175,7 +175,6 @@ int main(int argc, char *argv[]) {
     Vec2 a{240, 150};
     Vec2 b{500, 240};
     Vec2 c{300, 400};
-    draw_triangle(a, b, c, 0xFFFFFFFF);
     fill_triangle(a, b, c, 0xFFFFFFFF);
 
     SDL_UpdateTexture(texture, nullptr, framebuffer.data(),

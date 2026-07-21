@@ -14,7 +14,6 @@ float orient2D(Vec2 a, Vec2 b, Vec2 p) {
   // Compute the cross product to see if point p
   // lies on the left or right of AB
   return AB.cross2D(AP);
-  ;
 }
 
 #endif

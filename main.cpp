@@ -3,7 +3,6 @@
 #include "vec.h"
 #include <SDL3/SDL.h>
 #include <algorithm>
-#include <cmath>
 #include <cstdint>
 #include <numbers>
 #include <vector>
@@ -135,17 +134,11 @@ void fill_triangle(Vec2 a, Vec2 b, Vec2 c, uint32_t color) {
 
 float to_rad(int deg) { return deg * (std::numbers::pi / 180); }
 
-Mat4 perspective(float fov_y, float aspect, float near, float far) {
-  Mat4 m = Mat4::identity();
-  const float f = 1 / (tan(fov_y / 2));
-
-  m.mat[0][0] = f / aspect;
-  m.mat[1][1] = f;
-  m.mat[2][2] = -(far + near) / (far - near);        // A
-  m.mat[2][3] = -(2.0f * far * near) / (far - near); // B
-  m.mat[3][2] = -1.0f;                               // Stages w divide
-
-  return m;
+Vec2 viewport(Vec3 ndc) {
+  float x = (ndc.x + 1.0f) * 0.5f * WIDTH;
+  float y = (1.0f - ndc.y) * 0.5f *
+            HEIGHT; // 1-y because screen pixels count downward
+  return Vec2{x, y};
 }
 
 int main(int argc, char *argv[]) {
@@ -191,26 +184,15 @@ int main(int argc, char *argv[]) {
 
     // ––––––––––––––––––––––––––––––––––––––––––––––––––
 
-    // Back triangle (far)
-    Vec3 a0{200, 120, 0.0f};
-    Vec3 b0{520, 220, 0.0f};
-    Vec3 c0{280, 420, 0.0f};
-    fill_triangle(Vec2{a0.x, a0.y}, Vec2{b0.x, b0.y}, Vec2{c0.x, c0.y},
-                  0xFFFF0000);
-
-    // Middle triangle
-    Vec3 a1{260, 160, 0.5f};
-    Vec3 b1{480, 260, 0.5f};
-    Vec3 c1{340, 380, 0.5f};
-    fill_triangle(Vec2{a1.x, a1.y}, Vec2{b1.x, b1.y}, Vec2{c1.x, c1.y},
-                  0xFF00FF00);
-
-    // Front triangle (near)
-    Vec3 a2{320, 200, 1.0f};
-    Vec3 b2{440, 280, 1.0f};
-    Vec3 c2{380, 340, 1.0f};
-    fill_triangle(Vec2{a2.x, a2.y}, Vec2{b2.x, b2.y}, Vec2{c2.x, c2.y},
-                  0xFF0000FF);
+    // Triangle array
+    Vec3 triangles[3][3] = {
+        // FAR   (z = -6)  — draw first
+        {{0.8f, -0.8f, -6.0f}, {3.2f, -0.8f, -6.0f}, {2.0f, 1.4f, -6.0f}},
+        // MID   (z = -4.5)
+        {{-0.2f, -0.8f, -4.5f}, {2.2f, -0.8f, -4.5f}, {1.0f, 1.4f, -4.5f}},
+        // NEAR  (z = -3)  — draw last
+        {{-1.2f, -0.8f, -3.0f}, {1.2f, -0.8f, -3.0f}, {0.0f, 1.4f, -3.0f}},
+    };
 
     // ––––––––––––––Perspective Projection––––––––––––––
     // Maybe move these somewhere else later on
@@ -220,8 +202,40 @@ int main(int argc, char *argv[]) {
 
     // Camera inverse transform
     Mat4 view = Mat4::translate({-camera_pos.x, -camera_pos.y, -camera_pos.z});
-    Mat4 proj = perspective(fov, aspect, 0.5f, 100.0f);
-    Mat4 view_proj = proj * view;
+    Mat4 proj = Mat4::perspective(fov, aspect, 0.5f, 100.0f);
+
+    // Use identity so we can bake triangle vertices straight to world
+    Mat4 model = Mat4::identity();
+
+    Mat4 mvp = proj * view * model;
+
+    for (int i = 0; i < 3; i++) {
+      Vec2 a_screen, b_screen, c_screen;
+      for (int j = 0; j < 3; j++) {
+        Vec4 vertex_clip = mvp * Vec4{triangles[i][j].x, triangles[i][j].y,
+                                      triangles[i][j].z, 1.0f};
+        Vec3 ndc{(vertex_clip.x / vertex_clip.w),
+                 (vertex_clip.y / vertex_clip.w),
+                 (vertex_clip.z / vertex_clip.w)};
+        if (j == 0) {
+          a_screen = viewport(ndc);
+        } else if (j == 1) {
+          b_screen = viewport(ndc);
+        } else {
+          c_screen = viewport(ndc);
+        }
+      }
+      if (i == 0) {
+        // red
+        fill_triangle(a_screen, b_screen, c_screen, 0xFFFF0000);
+      } else if (i == 1) {
+        // green
+        fill_triangle(a_screen, b_screen, c_screen, 0xFF008000);
+      } else {
+        // blue
+        fill_triangle(a_screen, b_screen, c_screen, 0xFF0000FF);
+      }
+    }
 
     // ––––––––––––––––––––––––––––––––––––––––––––––––––
 

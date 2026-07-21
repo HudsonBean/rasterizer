@@ -2,6 +2,7 @@
 #define MAT
 
 #include "vec.h"
+#include <cmath>
 
 struct Mat {};
 
@@ -25,6 +26,17 @@ struct Mat4 {
     m.mat[0][3] = transform.x;
     m.mat[1][3] = transform.y;
     m.mat[2][3] = transform.z;
+    return m;
+  }
+
+  static Mat4 perspective(float fov_y, float aspect, float near, float far) {
+    Mat4 m{}; // Zero'd matrix
+    const float f = 1 / (tan(fov_y / 2));
+    m.mat[0][0] = f / aspect;
+    m.mat[1][1] = f;
+    m.mat[2][2] = -(far + near) / (far - near);        // A
+    m.mat[2][3] = -(2.0f * far * near) / (far - near); // B
+    m.mat[3][2] = -1.0f;                               // Stages w divide
     return m;
   }
 

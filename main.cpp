@@ -1,5 +1,6 @@
 #include "geometry.h"
 #include "mat.h"
+#include "obj_loader.h"
 #include "vec.h"
 #include <SDL3/SDL.h>
 #include <algorithm>
@@ -178,21 +179,16 @@ int main(int argc, char *argv[]) {
         running = false;
     }
 
+    // Clear framebuffer
     for (auto &pixel : framebuffer) {
       pixel = 0xFF000000;
     }
 
-    // ––––––––––––––––––––––––––––––––––––––––––––––––––
+    // ––––––––––––––––––––Load Model––––––––––––––––––––
 
-    // Triangle array
-    Vec3 triangles[3][3] = {
-        // FAR   (z = -6)  — draw first
-        {{0.8f, -0.8f, -6.0f}, {3.2f, -0.8f, -6.0f}, {2.0f, 1.4f, -6.0f}},
-        // MID   (z = -4.5)
-        {{-0.2f, -0.8f, -4.5f}, {2.2f, -0.8f, -4.5f}, {1.0f, 1.4f, -4.5f}},
-        // NEAR  (z = -3)  — draw last
-        {{-1.2f, -0.8f, -3.0f}, {1.2f, -0.8f, -3.0f}, {0.0f, 1.4f, -3.0f}},
-    };
+    Mesh mesh;
+    if (!load_obj("../model.obj", mesh))
+      return 1;
 
     // ––––––––––––––Perspective Projection––––––––––––––
     // Maybe move these somewhere else later on
@@ -203,38 +199,35 @@ int main(int argc, char *argv[]) {
     // Camera inverse transform
     Mat4 view = Mat4::translate({-camera_pos.x, -camera_pos.y, -camera_pos.z});
     Mat4 proj = Mat4::perspective(fov, aspect, 0.5f, 100.0f);
-
-    // Use identity so we can bake triangle vertices straight to world
     Mat4 model = Mat4::identity();
 
     Mat4 mvp = proj * view * model;
 
-    for (int i = 0; i < 3; i++) {
-      Vec2 a_screen, b_screen, c_screen;
-      for (int j = 0; j < 3; j++) {
-        Vec4 vertex_clip = mvp * Vec4{triangles[i][j].x, triangles[i][j].y,
-                                      triangles[i][j].z, 1.0f};
-        Vec3 ndc{(vertex_clip.x / vertex_clip.w),
-                 (vertex_clip.y / vertex_clip.w),
-                 (vertex_clip.z / vertex_clip.w)};
-        if (j == 0) {
-          a_screen = viewport(ndc);
-        } else if (j == 1) {
-          b_screen = viewport(ndc);
+    for (const Triangle &t : mesh.triangles) {
+      Vec3 v[] = {mesh.positions[t.p[0]], mesh.positions[t.p[1]],
+                  mesh.positions[t.p[2]]};
+      // push each through mvp → divide by w → viewport → fill_triangle
+      // normals (for lighting later): mesh.normals[t.n[0]], etc. (t.n[i] == -1
+      // if none)
+
+      Vec2 viewport0;
+      Vec2 viewport1;
+      Vec2 viewport2;
+      for (int i = 0; i < 3; i++) {
+        Vec4 clip = mvp * Vec4(v[i].x, v[i].y, v[i].z, 1.0f);
+        float invW = 1.0f / clip.w; // Optimization for division
+        Vec3 ndc{clip.x * invW, clip.y * invW, clip.z * invW};
+
+        if (i == 0) {
+          viewport0 = viewport(ndc);
+        } else if (i == 1) {
+          viewport1 = viewport(ndc);
         } else {
-          c_screen = viewport(ndc);
+          viewport2 = viewport(ndc);
         }
       }
-      if (i == 0) {
-        // red
-        fill_triangle(a_screen, b_screen, c_screen, 0xFFFF0000);
-      } else if (i == 1) {
-        // green
-        fill_triangle(a_screen, b_screen, c_screen, 0xFF008000);
-      } else {
-        // blue
-        fill_triangle(a_screen, b_screen, c_screen, 0xFF0000FF);
-      }
+
+      fill_triangle(viewport0, viewport1, viewport2, 0xFFFFFFFF);
     }
 
     // ––––––––––––––––––––––––––––––––––––––––––––––––––
